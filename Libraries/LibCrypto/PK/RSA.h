@@ -9,9 +9,11 @@
 
 #include <LibCrypto/ASN1/DER.h>
 #include <LibCrypto/BigInt/UnsignedBigInteger.h>
+#include <LibCrypto/Hash/HashManager.h>
 #include <LibCrypto/NumberTheory/ModularFunctions.h>
 #include <LibCrypto/OpenSSL.h>
 #include <LibCrypto/PK/PK.h>
+#include <openssl/rsa.h>
 
 namespace Crypto::PK {
 
@@ -199,8 +201,8 @@ public:
     virtual ErrorOr<void> encrypt(ReadonlyBytes in, Bytes& out) override;
     virtual ErrorOr<void> decrypt(ReadonlyBytes in, Bytes& out) override;
 
-    virtual ErrorOr<void> verify(ReadonlyBytes in, Bytes& out) override;
-    virtual ErrorOr<void> sign(ReadonlyBytes in, Bytes& out) override;
+    virtual ErrorOr<void> sign(ReadonlyBytes message, Bytes& signature) override;
+    virtual ErrorOr<bool> verify(ReadonlyBytes message, ReadonlyBytes signature) override;
 
     virtual ByteString class_name() const override
     {
@@ -222,13 +224,18 @@ public:
     void set_private_key(PrivateKeyType const& key) { m_private_key = key; }
 
 protected:
+    virtual ErrorOr<void> configure(OpenSSL_PKEY_CTX& ctx)
+    {
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_NO_PADDING));
+        return {};
+    }
+
     static ErrorOr<OpenSSL_PKEY> public_key_to_openssl_pkey(PublicKeyType const& public_key);
     static ErrorOr<OpenSSL_PKEY> private_key_to_openssl_pkey(PrivateKeyType const& private_key);
 };
 
 class RSA_PKCS1_EME : public RSA {
 public:
-    // forward all constructions to RSA
     template<typename... Args>
     RSA_PKCS1_EME(Args... args)
         : RSA(args...)
@@ -237,20 +244,85 @@ public:
 
     ~RSA_PKCS1_EME() = default;
 
-    virtual ErrorOr<void> encrypt(ReadonlyBytes in, Bytes& out) override;
-    virtual ErrorOr<void> decrypt(ReadonlyBytes in, Bytes& out) override;
-
-    virtual ErrorOr<void> verify(ReadonlyBytes in, Bytes& out) override;
-    virtual ErrorOr<void> sign(ReadonlyBytes in, Bytes& out) override;
+    virtual ErrorOr<void> sign(ReadonlyBytes, Bytes&) override
+    {
+        return Error::from_string_literal("Signing is not supported with RSA_PKCS1-EME");
+    }
+    virtual ErrorOr<bool> verify(ReadonlyBytes, ReadonlyBytes) override
+    {
+        return Error::from_string_literal("Verifying is not supported with RSA_PKCS1-EME");
+    }
 
     virtual ByteString class_name() const override
     {
         return "RSA_PKCS1-EME";
     }
 
-    virtual size_t output_size() const override
+protected:
+    ErrorOr<void> configure(OpenSSL_PKEY_CTX& ctx) override
     {
-        return m_public_key.length();
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_PKCS1_PADDING));
+        return {};
     }
 };
+
+class RSA_PKCS1_EMSA : public RSA {
+public:
+    template<typename... Args>
+    RSA_PKCS1_EMSA(Hash::HashKind hash_kind, Args... args)
+        : RSA(args...)
+        , m_hash_kind(hash_kind)
+    {
+    }
+
+    ~RSA_PKCS1_EMSA() = default;
+
+    virtual ErrorOr<void> encrypt(ReadonlyBytes, Bytes&) override
+    {
+        return Error::from_string_literal("Encrypting is not supported with RSA_PKCS1-EMSA");
+    }
+    virtual ErrorOr<void> decrypt(ReadonlyBytes, Bytes&) override
+    {
+        return Error::from_string_literal("Decrypting is not supported with RSA_PKCS1-EMSA");
+    }
+
+    virtual ErrorOr<bool> verify(ReadonlyBytes message, ReadonlyBytes signature) override;
+    virtual ErrorOr<void> sign(ReadonlyBytes message, Bytes& signature) override;
+
+    virtual ByteString class_name() const override
+    {
+        return "RSA_PKCS1-EMSA";
+    }
+
+protected:
+    ErrorOr<EVP_MD const*> hash_type() const
+    {
+        switch (m_hash_kind) {
+        case Hash::HashKind::BLAKE2b:
+            return EVP_blake2b512();
+        case Hash::HashKind::MD5:
+            return EVP_md5();
+        case Hash::HashKind::SHA1:
+            return EVP_sha1();
+        case Hash::HashKind::SHA256:
+            return EVP_sha256();
+        case Hash::HashKind::SHA384:
+            return EVP_sha384();
+        case Hash::HashKind::SHA512:
+            return EVP_sha512();
+        default:
+            return Error::from_string_literal("Unsupported hash kind");
+        }
+    }
+
+    ErrorOr<void> configure(OpenSSL_PKEY_CTX& ctx) override
+    {
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_PKCS1_PADDING));
+        return {};
+    }
+
+private:
+    Hash::HashKind m_hash_kind { Hash::HashKind::Unknown };
+};
+
 }

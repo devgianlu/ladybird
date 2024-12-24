@@ -220,7 +220,7 @@ ErrorOr<void> RSA::encrypt(ReadonlyBytes in, Bytes& out)
     auto ctx = TRY(OpenSSL_PKEY_CTX::wrap(EVP_PKEY_CTX_new_from_pkey(nullptr, key.ptr(), nullptr)));
 
     OPENSSL_TRY(EVP_PKEY_encrypt_init(ctx.ptr()));
-    OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_NO_PADDING));
+    TRY(configure(ctx));
 
     size_t out_size = out.size();
     OPENSSL_TRY(EVP_PKEY_encrypt(ctx.ptr(), out.data(), &out_size, in.data(), in.size()));
@@ -235,7 +235,7 @@ ErrorOr<void> RSA::decrypt(ReadonlyBytes in, Bytes& out)
     auto ctx = TRY(OpenSSL_PKEY_CTX::wrap(EVP_PKEY_CTX_new_from_pkey(nullptr, key.ptr(), nullptr)));
 
     OPENSSL_TRY(EVP_PKEY_decrypt_init(ctx.ptr()));
-    OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_NO_PADDING));
+    TRY(configure(ctx));
 
     size_t out_size = out.size();
     OPENSSL_TRY(EVP_PKEY_decrypt(ctx.ptr(), out.data(), &out_size, in.data(), in.size()));
@@ -243,22 +243,37 @@ ErrorOr<void> RSA::decrypt(ReadonlyBytes in, Bytes& out)
     return {};
 }
 
-ErrorOr<void> RSA::sign(ReadonlyBytes in, Bytes& out)
+ErrorOr<void> RSA::sign(ReadonlyBytes message, Bytes& signature)
 {
-    auto in_integer = UnsignedBigInteger::import_data(in.data(), in.size());
-    auto exp = NumberTheory::ModularPower(in_integer, m_private_key.private_exponent(), m_private_key.modulus());
-    auto size = exp.export_data(out);
-    out = out.slice(out.size() - size, size);
+    auto key = TRY(private_key_to_openssl_pkey(m_private_key));
+
+    auto ctx = TRY(OpenSSL_PKEY_CTX::wrap(EVP_PKEY_CTX_new_from_pkey(nullptr, key.ptr(), nullptr)));
+
+    OPENSSL_TRY(EVP_PKEY_sign_init(ctx.ptr()));
+    TRY(configure(ctx));
+
+    size_t signature_size = signature.size();
+    OPENSSL_TRY(EVP_PKEY_sign(ctx.ptr(), signature.data(), &signature_size, message.data(), message.size()));
+    signature = signature.slice(0, signature_size);
     return {};
 }
 
-ErrorOr<void> RSA::verify(ReadonlyBytes in, Bytes& out)
+ErrorOr<bool> RSA::verify(ReadonlyBytes message, ReadonlyBytes signature)
 {
-    auto in_integer = UnsignedBigInteger::import_data(in.data(), in.size());
-    auto exp = NumberTheory::ModularPower(in_integer, m_public_key.public_exponent(), m_public_key.modulus());
-    auto size = exp.export_data(out);
-    out = out.slice(out.size() - size, size);
-    return {};
+    auto key = TRY(public_key_to_openssl_pkey(m_public_key));
+
+    auto ctx = TRY(OpenSSL_PKEY_CTX::wrap(EVP_PKEY_CTX_new_from_pkey(nullptr, key.ptr(), nullptr)));
+
+    OPENSSL_TRY(EVP_PKEY_verify_init(ctx.ptr()));
+    TRY(configure(ctx));
+
+    auto ret = EVP_PKEY_verify(ctx.ptr(), signature.data(), signature.size(), message.data(), message.size());
+    if (ret == 1)
+        return true;
+    if (ret == 0)
+        return false;
+    OPENSSL_TRY(ret);
+    VERIFY_NOT_REACHED();
 }
 
 void RSA::import_private_key(ReadonlyBytes bytes, bool pem)
@@ -323,79 +338,45 @@ void RSA::import_public_key(ReadonlyBytes bytes, bool pem)
     m_public_key = maybe_key.release_value().public_key;
 }
 
-ErrorOr<void> RSA_PKCS1_EME::encrypt(ReadonlyBytes in, Bytes& out)
+ErrorOr<bool> RSA_PKCS1_EMSA::verify(ReadonlyBytes message, ReadonlyBytes signature)
 {
-    auto mod_len = (m_public_key.modulus().trimmed_length() * sizeof(u32) * 8 + 7) / 8;
-    dbgln_if(CRYPTO_DEBUG, "key size: {}", mod_len);
-    if (in.size() > mod_len - 11)
-        return Error::from_string_literal("Message too long");
+    auto key = TRY(public_key_to_openssl_pkey(m_public_key));
+    auto const* hash_type = TRY(this->hash_type());
 
-    if (out.size() < mod_len)
-        return Error::from_string_literal("Output buffer too small");
+    auto ctx = TRY(OpenSSL_MD_CTX::create());
 
-    auto ps_length = mod_len - in.size() - 3;
-    Vector<u8, 8096> ps;
-    ps.resize(ps_length);
+    auto key_ctx = TRY(OpenSSL_PKEY_CTX::wrap(EVP_PKEY_CTX_new(key.ptr(), nullptr)));
+    EVP_MD_CTX_set_pkey_ctx(ctx.ptr(), key_ctx.ptr());
 
-    fill_with_random(ps);
-    // since fill_with_random can create zeros (shocking!)
-    // we have to go through and un-zero the zeros
-    for (size_t i = 0; i < ps_length; ++i) {
-        while (!ps[i])
-            ps[i] = get_random<u8>();
-    }
+    OPENSSL_TRY(EVP_DigestVerifyInit(ctx.ptr(), nullptr, hash_type, nullptr, key.ptr()));
+    TRY(configure(key_ctx));
 
-    u8 paddings[] { 0x00, 0x02 };
+    auto res = EVP_DigestVerify(ctx.ptr(), signature.data(), signature.size(), message.data(), message.size());
+    if (res == 1)
+        return true;
+    if (res == 0)
+        return false;
+    OPENSSL_TRY(res);
+    VERIFY_NOT_REACHED();
+}
 
-    out.overwrite(0, paddings, 2);
-    out.overwrite(2, ps.data(), ps_length);
-    out.overwrite(2 + ps_length, paddings, 1);
-    out.overwrite(3 + ps_length, in.data(), in.size());
-    out = out.trim(3 + ps_length + in.size()); // should be a single block
+ErrorOr<void> RSA_PKCS1_EMSA::sign(ReadonlyBytes message, Bytes& signature)
+{
+    auto key = TRY(public_key_to_openssl_pkey(m_public_key));
+    auto const* hash_type = TRY(this->hash_type());
 
-    dbgln_if(CRYPTO_DEBUG, "padded output size: {} buffer size: {}", 3 + ps_length + in.size(), out.size());
+    auto ctx = TRY(OpenSSL_MD_CTX::create());
 
-    TRY(RSA::encrypt(out, out));
+    auto key_ctx = TRY(OpenSSL_PKEY_CTX::wrap(EVP_PKEY_CTX_new(key.ptr(), nullptr)));
+    EVP_MD_CTX_set_pkey_ctx(ctx.ptr(), key_ctx.ptr());
+
+    OPENSSL_TRY(EVP_DigestSignInit(ctx.ptr(), nullptr, hash_type, nullptr, key.ptr()));
+    TRY(configure(key_ctx));
+
+    size_t signature_size = signature.size();
+    OPENSSL_TRY(EVP_DigestSign(ctx.ptr(), signature.data(), &signature_size, message.data(), message.size()));
+    signature = signature.slice(0, signature_size);
     return {};
 }
 
-ErrorOr<void> RSA_PKCS1_EME::decrypt(ReadonlyBytes in, Bytes& out)
-{
-    auto mod_len = (m_public_key.modulus().trimmed_length() * sizeof(u32) * 8 + 7) / 8;
-    if (in.size() != mod_len)
-        return Error::from_string_literal("Invalid input size");
-
-    TRY(RSA::decrypt(in, out));
-
-    if (out.size() < RSA::output_size())
-        return Error::from_string_literal("Not enough data after decryption");
-
-    if (out[0] != 0x00 || out[1] != 0x02)
-        return Error::from_string_literal("Invalid padding");
-
-    size_t offset = 2;
-    while (offset < out.size() && out[offset])
-        ++offset;
-
-    if (offset == out.size())
-        return Error::from_string_literal("Garbage data, no zero to split padding");
-
-    ++offset;
-
-    if (offset - 3 < 8)
-        return Error::from_string_literal("PS too small");
-
-    out = out.slice(offset, out.size() - offset);
-    return {};
-}
-
-ErrorOr<void> RSA_PKCS1_EME::sign(ReadonlyBytes, Bytes&)
-{
-    return Error::from_string_literal("FIXME: RSA_PKCS_EME::sign");
-}
-
-ErrorOr<void> RSA_PKCS1_EME::verify(ReadonlyBytes, Bytes&)
-{
-    return Error::from_string_literal("FIXME: RSA_PKCS_EME::verify");
-}
 }

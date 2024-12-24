@@ -235,8 +235,8 @@ public:
     virtual ErrorOr<void> encrypt(ReadonlyBytes in, Bytes& out) = 0;
     virtual ErrorOr<void> decrypt(ReadonlyBytes in, Bytes& out) = 0;
 
-    virtual ErrorOr<void> verify(ReadonlyBytes in, Bytes& out) = 0;
-    virtual ErrorOr<void> sign(ReadonlyBytes in, Bytes& out) = 0;
+    virtual ErrorOr<void> sign(ReadonlyBytes message, Bytes& signature) = 0;
+    virtual ErrorOr<bool> verify(ReadonlyBytes message, ReadonlyBytes signature) = 0;
 
     virtual ByteString class_name() const = 0;
 

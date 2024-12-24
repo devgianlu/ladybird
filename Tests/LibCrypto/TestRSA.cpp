@@ -176,3 +176,24 @@ TEST_CASE(test_RSA_encrypt_decrypt)
 
     EXPECT(memcmp(enc.data(), "WellHelloFriendsWellHelloFriendsWellHelloFriendsWellHelloFriends", 64) == 0);
 }
+
+TEST_CASE(test_RSA_sign_verify)
+{
+    auto keypair = TRY_OR_FAIL(Crypto::PK::RSA::generate_key_pair(1024));
+    Crypto::PK::RSA rsa(keypair);
+
+    ByteBuffer msg_buffer = {};
+    msg_buffer.resize(rsa.output_size());
+
+    ByteBuffer sig_buffer = {};
+    sig_buffer.resize(rsa.output_size());
+
+    auto msg = msg_buffer.bytes();
+    auto sig = sig_buffer.bytes();
+
+    msg.overwrite(0, "WellHelloFriendsWellHelloFriendsWellHelloFriendsWellHelloFriends", 64);
+
+    TRY_OR_FAIL(rsa.sign(msg, sig));
+    auto ok = TRY_OR_FAIL(rsa.verify(msg, sig));
+    EXPECT_EQ(ok, true);
+}
