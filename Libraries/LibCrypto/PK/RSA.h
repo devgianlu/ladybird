@@ -373,4 +373,34 @@ private:
     Optional<ReadonlyBytes> m_label {};
 };
 
+class RSA_PSS_EMSA : public RSA_EMSA {
+public:
+    template<typename... Args>
+    RSA_PSS_EMSA(Hash::HashKind hash_kind, Args... args)
+        : RSA_EMSA(hash_kind, args...)
+    {
+    }
+
+    ~RSA_PSS_EMSA() = default;
+
+    virtual ByteString class_name() const override
+    {
+        return "RSA_PSS-EMSA";
+    }
+
+    void set_salt_length(int value) { m_salt_length = value; }
+
+protected:
+    ErrorOr<void> configure(OpenSSL_PKEY_CTX& ctx) override
+    {
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_PKCS1_PSS_PADDING));
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx.ptr(), TRY(hash_kind_to_hash_type(m_hash_kind))));
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx.ptr(), m_salt_length));
+        return {};
+    }
+
+private:
+    int m_salt_length { RSA_PSS_SALTLEN_MAX };
+};
+
 }
