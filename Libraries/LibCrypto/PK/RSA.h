@@ -235,42 +235,87 @@ protected:
     static ErrorOr<OpenSSL_PKEY> private_key_to_openssl_pkey(PrivateKeyType const& private_key);
 };
 
-class RSA_PKCS1_EME : public RSA {
+ErrorOr<EVP_MD const*> hash_kind_to_hash_type(Hash::HashKind hash_kind);
+
+class RSA_EME : public RSA {
 public:
-    // forward all constructions to RSA
+    template<typename... Args>
+    RSA_EME(Hash::HashKind hash_kind, Args... args)
+        : RSA(args...)
+        , m_hash_kind(hash_kind)
+    {
+    }
+
+    ~RSA_EME() = default;
+
+    virtual ErrorOr<ByteBuffer> sign(ReadonlyBytes) override
+    {
+        return Error::from_string_literal("Signing is not supported");
+    }
+    virtual ErrorOr<bool> verify(ReadonlyBytes, ReadonlyBytes) override
+    {
+        return Error::from_string_literal("Verifying is not supported");
+    }
+
+protected:
+    Hash::HashKind m_hash_kind { Hash::HashKind::Unknown };
+};
+
+class RSA_EMSA : public RSA {
+public:
+    template<typename... Args>
+    RSA_EMSA(Hash::HashKind hash_kind, Args... args)
+        : RSA(args...)
+        , m_hash_kind(hash_kind)
+    {
+    }
+
+    ~RSA_EMSA() = default;
+
+    virtual ErrorOr<ByteBuffer> encrypt(ReadonlyBytes) override
+    {
+        return Error::from_string_literal("Encrypting is not supported");
+    }
+    virtual ErrorOr<ByteBuffer> decrypt(ReadonlyBytes) override
+    {
+        return Error::from_string_literal("Decrypting is not supported");
+    }
+
+    virtual ErrorOr<bool> verify(ReadonlyBytes message, ReadonlyBytes signature) override;
+    virtual ErrorOr<ByteBuffer> sign(ReadonlyBytes message) override;
+
+protected:
+    Hash::HashKind m_hash_kind { Hash::HashKind::Unknown };
+};
+
+class RSA_PKCS1_EME : public RSA_EME {
+public:
     template<typename... Args>
     RSA_PKCS1_EME(Args... args)
-        : RSA(args...)
+        : RSA_EME(Hash::HashKind::None, args...)
     {
     }
 
     ~RSA_PKCS1_EME() = default;
-
-    virtual ErrorOr<ByteBuffer> encrypt(ReadonlyBytes in) override;
-    virtual ErrorOr<ByteBuffer> decrypt(ReadonlyBytes in) override;
-
-    virtual ErrorOr<bool> verify(ReadonlyBytes, ReadonlyBytes) override;
-    virtual ErrorOr<ByteBuffer> sign(ReadonlyBytes) override;
 
     virtual ByteString class_name() const override
     {
         return "RSA_PKCS1-EME";
     }
 
-    virtual size_t output_size() const override
+protected:
+    ErrorOr<void> configure(OpenSSL_PKEY_CTX& ctx) override
     {
-        return m_public_key.length();
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_PKCS1_PADDING));
+        return {};
     }
 };
 
-ErrorOr<EVP_MD const*> hash_kind_to_hash_type(Hash::HashKind hash_kind);
-
-class RSA_PKCS1_EMSA : public RSA {
+class RSA_PKCS1_EMSA : public RSA_EMSA {
 public:
     template<typename... Args>
     RSA_PKCS1_EMSA(Hash::HashKind hash_kind, Args... args)
-        : RSA(args...)
-        , m_hash_kind(hash_kind)
+        : RSA_EMSA(hash_kind, args...)
     {
     }
 
@@ -281,18 +326,51 @@ public:
         return "RSA_PKCS1-EMSA";
     }
 
-    virtual ErrorOr<bool> verify(ReadonlyBytes, ReadonlyBytes) override;
-    virtual ErrorOr<ByteBuffer> sign(ReadonlyBytes) override;
-
 protected:
     ErrorOr<void> configure(OpenSSL_PKEY_CTX& ctx) override
     {
         OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_PKCS1_PADDING));
         return {};
     }
+};
+
+class RSA_OAEP_EME : public RSA_EME {
+public:
+    template<typename... Args>
+    RSA_OAEP_EME(Hash::HashKind hash_kind, Args... args)
+        : RSA_EME(hash_kind, args...)
+    {
+    }
+
+    ~RSA_OAEP_EME() = default;
+
+    virtual ByteString class_name() const override
+    {
+        return "RSA_OAEP-EME";
+    }
+
+    void set_label(ReadonlyBytes label) { m_label = label; }
+
+protected:
+    ErrorOr<void> configure(OpenSSL_PKEY_CTX& ctx) override
+    {
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_PKCS1_OAEP_PADDING));
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_oaep_md(ctx.ptr(), TRY(hash_kind_to_hash_type(m_hash_kind))));
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx.ptr(), TRY(hash_kind_to_hash_type(m_hash_kind))));
+
+        if (m_label.has_value() && !m_label->is_empty()) {
+            // https://docs.openssl.org/3.0/man3/EVP_PKEY_CTX_ctrl/#rsa-parameters
+            // The library takes ownership of the label so the caller should not free the original memory pointed to by label.
+            auto* label = OPENSSL_malloc(m_label->size());
+            memcpy(label, m_label->data(), m_label->size());
+            OPENSSL_TRY(EVP_PKEY_CTX_set0_rsa_oaep_label(ctx.ptr(), label, m_label->size()));
+        }
+
+        return {};
+    }
 
 private:
-    Hash::HashKind m_hash_kind;
+    Optional<ReadonlyBytes> m_label {};
 };
 
 }
