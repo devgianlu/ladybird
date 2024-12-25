@@ -9,6 +9,7 @@
 
 #include <LibCrypto/ASN1/DER.h>
 #include <LibCrypto/BigInt/UnsignedBigInteger.h>
+#include <LibCrypto/Hash/HashManager.h>
 #include <LibCrypto/NumberTheory/ModularFunctions.h>
 #include <LibCrypto/OpenSSL.h>
 #include <LibCrypto/PK/PK.h>
@@ -201,8 +202,8 @@ public:
     virtual ErrorOr<ByteBuffer> encrypt(ReadonlyBytes in) override;
     virtual ErrorOr<ByteBuffer> decrypt(ReadonlyBytes in) override;
 
-    virtual ErrorOr<ByteBuffer> verify(ReadonlyBytes in) override;
-    virtual ErrorOr<ByteBuffer> sign(ReadonlyBytes in) override;
+    virtual ErrorOr<ByteBuffer> sign(ReadonlyBytes message) override;
+    virtual ErrorOr<bool> verify(ReadonlyBytes message, ReadonlyBytes signature) override;
 
     virtual ByteString class_name() const override
     {
@@ -248,8 +249,8 @@ public:
     virtual ErrorOr<ByteBuffer> encrypt(ReadonlyBytes in) override;
     virtual ErrorOr<ByteBuffer> decrypt(ReadonlyBytes in) override;
 
-    virtual ErrorOr<ByteBuffer> verify(ReadonlyBytes in) override;
-    virtual ErrorOr<ByteBuffer> sign(ReadonlyBytes in) override;
+    virtual ErrorOr<bool> verify(ReadonlyBytes, ReadonlyBytes) override;
+    virtual ErrorOr<ByteBuffer> sign(ReadonlyBytes) override;
 
     virtual ByteString class_name() const override
     {
@@ -261,4 +262,37 @@ public:
         return m_public_key.length();
     }
 };
+
+ErrorOr<EVP_MD const*> hash_kind_to_hash_type(Hash::HashKind hash_kind);
+
+class RSA_PKCS1_EMSA : public RSA {
+public:
+    template<typename... Args>
+    RSA_PKCS1_EMSA(Hash::HashKind hash_kind, Args... args)
+        : RSA(args...)
+        , m_hash_kind(hash_kind)
+    {
+    }
+
+    ~RSA_PKCS1_EMSA() = default;
+
+    virtual ByteString class_name() const override
+    {
+        return "RSA_PKCS1-EMSA";
+    }
+
+    virtual ErrorOr<bool> verify(ReadonlyBytes, ReadonlyBytes) override;
+    virtual ErrorOr<ByteBuffer> sign(ReadonlyBytes) override;
+
+protected:
+    ErrorOr<void> configure(OpenSSL_PKEY_CTX& ctx) override
+    {
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_PKCS1_PADDING));
+        return {};
+    }
+
+private:
+    Hash::HashKind m_hash_kind;
+};
+
 }
