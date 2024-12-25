@@ -13,6 +13,8 @@
 #include <LibCrypto/OpenSSL.h>
 #include <LibCrypto/PK/PK.h>
 
+#include <openssl/rsa.h>
+
 namespace Crypto::PK {
 
 template<typename Integer = UnsignedBigInteger>
@@ -222,6 +224,12 @@ public:
     void set_private_key(PrivateKeyType const& key) { m_private_key = key; }
 
 protected:
+    virtual ErrorOr<void> configure(OpenSSL_PKEY_CTX& ctx)
+    {
+        OPENSSL_TRY(EVP_PKEY_CTX_set_rsa_padding(ctx.ptr(), RSA_NO_PADDING));
+        return {};
+    }
+
     static ErrorOr<OpenSSL_PKEY> public_key_to_openssl_pkey(PublicKeyType const& public_key);
     static ErrorOr<OpenSSL_PKEY> private_key_to_openssl_pkey(PrivateKeyType const& private_key);
 };
