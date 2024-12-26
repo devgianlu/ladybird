@@ -2,25 +2,9 @@ Harness status: OK
 
 Found 97 tests
 
-67 Pass
-30 Fail
+83 Pass
+14 Fail
 Pass	setup
-Fail	importVectorKeys step: RSA-PSS with SHA-1 and no salt signing with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-256 and no salt signing with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-384 and no salt signing with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-512 and no salt signing with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-1, salted signing with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-256, salted signing with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-384, salted signing with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-512, salted signing with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-1 and no salt verification with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-256 and no salt verification with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-384 and no salt verification with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-512 and no salt verification with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-1, salted verification with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-256, salted verification with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-384, salted verification with wrong algorithm name
-Fail	importVectorKeys step: RSA-PSS with SHA-512, salted verification with wrong algorithm name
 Fail	RSA-PSS with SHA-1 and no salt verification
 Pass	RSA-PSS with SHA-256 and no salt verification
 Pass	RSA-PSS with SHA-384 and no salt verification
@@ -77,6 +61,22 @@ Fail	RSA-PSS with SHA-1, salted round trip
 Pass	RSA-PSS with SHA-256, salted round trip
 Pass	RSA-PSS with SHA-384, salted round trip
 Pass	RSA-PSS with SHA-512, salted round trip
+Pass	RSA-PSS with SHA-1 and no salt signing with wrong algorithm name
+Pass	RSA-PSS with SHA-256 and no salt signing with wrong algorithm name
+Pass	RSA-PSS with SHA-384 and no salt signing with wrong algorithm name
+Pass	RSA-PSS with SHA-512 and no salt signing with wrong algorithm name
+Pass	RSA-PSS with SHA-1, salted signing with wrong algorithm name
+Pass	RSA-PSS with SHA-256, salted signing with wrong algorithm name
+Pass	RSA-PSS with SHA-384, salted signing with wrong algorithm name
+Pass	RSA-PSS with SHA-512, salted signing with wrong algorithm name
+Pass	RSA-PSS with SHA-1 and no salt verification with wrong algorithm name
+Pass	RSA-PSS with SHA-256 and no salt verification with wrong algorithm name
+Pass	RSA-PSS with SHA-384 and no salt verification with wrong algorithm name
+Pass	RSA-PSS with SHA-512 and no salt verification with wrong algorithm name
+Pass	RSA-PSS with SHA-1, salted verification with wrong algorithm name
+Pass	RSA-PSS with SHA-256, salted verification with wrong algorithm name
+Pass	RSA-PSS with SHA-384, salted verification with wrong algorithm name
+Pass	RSA-PSS with SHA-512, salted verification with wrong algorithm name
 Fail	RSA-PSS with SHA-1 and no salt verification failure with altered signature
 Pass	RSA-PSS with SHA-256 and no salt verification failure with altered signature
 Pass	RSA-PSS with SHA-384 and no salt verification failure with altered signature
