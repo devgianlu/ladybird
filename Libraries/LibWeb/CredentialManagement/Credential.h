@@ -13,6 +13,8 @@
 
 namespace Web::CredentialManagement {
 
+typedef GC::Function<JS::ThrowCompletionOr<GC::Ref<Credential>>(JS::Object const&)> CreateCredentialAlgorithm;
+
 class Credential : public Bindings::PlatformObject {
     WEB_PLATFORM_OBJECT(Credential, Bindings::PlatformObject);
     GC_DECLARE_ALLOCATOR(Credential);
@@ -30,6 +32,13 @@ public:
     String const& icon_url() { return m_icon_url; }
 
     virtual String type() = 0;
+
+    // https://w3c.github.io/webappsec-credential-management/#algorithm-create-cred
+    virtual JS::ThrowCompletionOr<Variant<Empty, GC::Ref<Credential>, GC::Ref<CreateCredentialAlgorithm>>> internal_create(URL::Origin const&, CredentialCreationOptions const&, bool)
+    {
+        // 1. Return null.
+        return Empty {};
+    }
 
 protected:
     explicit Credential(JS::Realm&);

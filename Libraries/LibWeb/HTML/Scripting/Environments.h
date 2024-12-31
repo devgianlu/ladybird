@@ -102,6 +102,8 @@ public:
 
     GC::Ref<StorageAPI::StorageManager> storage_manager();
 
+    Vector<String> active_credential_types() const;
+
     [[nodiscard]] bool discarded() const { return m_discarded; }
     void set_discarded(bool b) { m_discarded = b; }
 
@@ -123,6 +125,9 @@ private:
     // https://storage.spec.whatwg.org/#api
     // Each environment settings object has an associated StorageManager object.
     GC::Ptr<StorageAPI::StorageManager> m_storage_manager;
+
+    // https://w3c.github.io/webappsec-credential-management/#active-credential-types
+    Vector<String> m_active_credential_types;
 
     // https://w3c.github.io/ServiceWorker/#service-worker-client-discarded-flag
     // A service worker client has an associated discarded flag. It is initially unset.

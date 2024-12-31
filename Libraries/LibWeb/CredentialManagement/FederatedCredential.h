@@ -28,6 +28,8 @@ public:
 
     String type() override { return "federated"_string; }
 
+   //JS::ThrowCompletionOr<Variant<GC::Ref<Credential>, CreateCredentialAlgorithm>> internal_create(const URL::Origin&, CredentialCreationOptions const&, bool) override;
+
 private:
     explicit FederatedCredential(JS::Realm&);
     virtual void initialize(JS::Realm&) override;

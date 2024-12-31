@@ -582,4 +582,10 @@ GC::Ref<StorageAPI::StorageManager> EnvironmentSettingsObject::storage_manager()
     return *m_storage_manager;
 }
 
+// https://w3c.github.io/webappsec-credential-management/#active-credential-types
+Vector<String> EnvironmentSettingsObject::active_credential_types() const
+{
+    return m_active_credential_types;
+}
+
 }
