@@ -20,3 +20,11 @@ window.test_driver_internal.get_computed_label = async function(element) {
 window.test_driver_internal.get_computed_role = async function(element) {
     return await window.internals.getComputedRole(element);
 };
+
+window.test_driver_internal.add_virtual_authenticator = function(config, context=null) {
+    return Promise.resolve("hello")
+}
+
+window.test_driver_internal.remove_virtual_authenticator = function(config, context=null) {
+    return Promise.resolve("hello")
+}

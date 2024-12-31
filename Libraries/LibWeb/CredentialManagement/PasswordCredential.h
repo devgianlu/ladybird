@@ -29,6 +29,8 @@ public:
 
     String type() override { return "password"_string; }
 
+    //JS::ThrowCompletionOr<Variant<GC::Ref<Credential>, CreateCredentialAlgorithm>> internal_create(const URL::Origin&, CredentialCreationOptions const&, bool) override;
+
 private:
     explicit PasswordCredential(JS::Realm&);
     virtual void initialize(JS::Realm&) override;
