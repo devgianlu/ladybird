@@ -30,6 +30,9 @@ public:
         //       therefore conditional mediation is not supported.
         return false;
     }
+
+    // https://w3c.github.io/webappsec-credential-management/#create-passwordcredential
+    virtual JS::ThrowCompletionOr<Variant<Empty, GC::Ref<Credential>, GC::Ref<CreateCredentialAlgorithm>>> create(JS::Realm&, URL::Origin const&, CredentialCreationOptions const&, bool) const override;
 };
 
 class PasswordCredential final : public Credential {
@@ -38,7 +41,7 @@ class PasswordCredential final : public Credential {
 
 public:
     [[nodiscard]] static GC::Ref<PasswordCredential> create(JS::Realm&);
-    static WebIDL::ExceptionOr<GC::Ref<PasswordCredential>> construct_impl(JS::Realm&, HTML::HTMLFormElement const&);
+    static WebIDL::ExceptionOr<GC::Ref<PasswordCredential>> construct_impl(JS::Realm&, HTML::HTMLFormElement&);
     static WebIDL::ExceptionOr<GC::Ref<PasswordCredential>> construct_impl(JS::Realm&, PasswordCredentialData const&);
 
     virtual ~PasswordCredential() override;
@@ -51,10 +54,17 @@ public:
         return PasswordCredentialInterface::the();
     }
 
+    // https://w3c.github.io/webappsec-credential-management/#abstract-opdef-create-a-passwordcredential-from-passwordcredentialdata
+    static WebIDL::ExceptionOr<GC::Ref<PasswordCredential>> create_from_password_credential_data(JS::Realm&, PasswordCredentialData const&);
+
+    // https://w3c.github.io/webappsec-credential-management/#abstract-opdef-create-a-passwordcredential-from-an-htmlformelement
+    static WebIDL::ExceptionOr<GC::Ref<PasswordCredential>> create_from_an_html_form_element(JS::Realm&, HTML::HTMLFormElement&, URL::Origin const&);
+
 private:
     explicit PasswordCredential(JS::Realm&);
     virtual void initialize(JS::Realm&) override;
 
+    String m_origin;
     // TODO: Use Core::SecretString when it comes back
     String m_password;
 };
