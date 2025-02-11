@@ -100,10 +100,12 @@ enum class Source;
 }
 
 namespace Web::CredentialManagement {
+class AuthenticatorResponse;
 class Credential;
 class CredentialsContainer;
 class FederatedCredential;
 class PasswordCredential;
+class PublicKeyCredential;
 
 struct CredentialData;
 struct CredentialRequestOptions;
