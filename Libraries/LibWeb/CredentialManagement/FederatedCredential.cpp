@@ -5,7 +5,9 @@
  */
 
 #include <LibURL/Parser.h>
+#include <LibWeb/Bindings/ExceptionOrUtils.h>
 #include <LibWeb/Bindings/Intrinsics.h>
+#include <LibWeb/CredentialManagement/CredentialsContainer.h>
 #include <LibWeb/CredentialManagement/FederatedCredential.h>
 #include <LibWeb/CredentialManagement/FederatedCredentialOperations.h>
 
@@ -30,6 +32,24 @@ WebIDL::ExceptionOr<GC::Ref<FederatedCredential>> FederatedCredential::construct
 
 FederatedCredential::~FederatedCredential()
 {
+}
+
+// https://w3c.github.io/webappsec-credential-management/#create-federatedcredential
+JS::ThrowCompletionOr<Variant<Empty, GC::Ref<Credential>, GC::Ref<CreateCredentialAlgorithm>>> FederatedCredentialInterface::create(JS::Realm& realm, URL::Origin const& origin, CredentialCreationOptions const& options, bool) const
+{
+    // 1. Assert: options["federated"] exists, and sameOriginWithAncestors is unused.
+    VERIFY(options.federated.has_value());
+
+    // 2. Set options["federated"]'s origin member’s value to origin’s value.
+    // NOTE: We don't carry the "origin" field in FederatedCredentialInit, so we don't need to set it here.
+
+    // 3. Return the result of executing Create a FederatedCredential from FederatedCredentialInit given options["federated"].
+    // If that threw an exception, then rethrow that exception.
+    auto maybe_result = create_federated_credential(realm, *options.federated, origin);
+    if (maybe_result.is_error())
+        return Bindings::exception_to_throw_completion(realm.vm(), maybe_result.release_error());
+
+    return maybe_result.release_value();
 }
 
 FederatedCredential::FederatedCredential(JS::Realm& realm, FederatedCredentialInit const& init, URL::Origin const& origin)
