@@ -80,10 +80,10 @@ static Vector<CredentialInterface const*> relevant_credential_interface_objects(
     // https://w3c.github.io/webappsec-credential-management/#credential-type-registry-appropriate-interface-object
     APPEND_CREDENTIAL_INTERFACE_OBJECT(password, PasswordCredential);
     APPEND_CREDENTIAL_INTERFACE_OBJECT(federated, FederatedCredential);
+    APPEND_CREDENTIAL_INTERFACE_OBJECT(public_key, PublicKeyCredential);
     // TODO: digital
     // TODO: identity
     // TODO: otp
-    // TODO: publicKey
 
 #undef APPEND_CREDENTIAL_INTERFACE_OBJECT
 

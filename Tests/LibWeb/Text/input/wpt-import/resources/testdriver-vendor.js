@@ -75,3 +75,11 @@ window.test_driver_internal.action_sequence = function(actions, context) {
 
     return Promise.resolve();
 };
+
+window.test_driver_internal.add_virtual_authenticator = async function()  {
+    return Promise.resolve("a");
+}
+
+window.test_driver_internal.remove_virtual_authenticator = async function()  {
+    return Promise.resolve("a");
+}

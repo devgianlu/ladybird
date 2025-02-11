@@ -84,12 +84,14 @@ set(SOURCES
     ContentSecurityPolicy/Violation.cpp
     CookieStore/CookieChangeEvent.cpp
     CookieStore/CookieStore.cpp
+    CredentialManagement/AuthenticatorResponse.cpp
     CredentialManagement/Credential.cpp
     CredentialManagement/CredentialsContainer.cpp
     CredentialManagement/FederatedCredential.cpp
     CredentialManagement/FederatedCredentialOperations.cpp
     CredentialManagement/PasswordCredential.cpp
     CredentialManagement/PasswordCredentialOperations.cpp
+    CredentialManagement/PublicKeyCredential.cpp
     Crypto/Crypto.cpp
     Crypto/CryptoAlgorithms.cpp
     Crypto/CryptoBindings.cpp

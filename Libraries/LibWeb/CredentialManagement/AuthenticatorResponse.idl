@@ -1,0 +1,4 @@
+[SecureContext, Exposed=Window]
+interface AuthenticatorResponse {
+    [SameObject] readonly attribute ArrayBuffer clientDataJSON;
+};
