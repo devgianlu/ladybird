@@ -16,6 +16,7 @@
 #include <LibWeb/Bindings/InternalsPrototype.h>
 #include <LibWeb/Bindings/Intrinsics.h>
 #include <LibWeb/Bindings/MainThreadVM.h>
+#include <LibWeb/CredentialManagement/VirtualAuthenticator.h>
 #include <LibWeb/DOM/Document.h>
 #include <LibWeb/DOM/Event.h>
 #include <LibWeb/DOM/EventTarget.h>
@@ -30,6 +31,8 @@
 #include <LibWeb/HTML/Window.h>
 #include <LibWeb/Internals/InternalGamepad.h>
 #include <LibWeb/Internals/Internals.h>
+
+#include <LibWeb/Bindings/AuthenticatorResponseConstructor.h>
 #include <LibWeb/Page/InputEvent.h>
 #include <LibWeb/Page/Page.h>
 #include <LibWeb/Painting/PaintableBox.h>
@@ -120,7 +123,7 @@ WebIDL::ExceptionOr<void> Internals::load_reference_test_metadata()
     metadata.set("fuzzy"sv, fuzzy_configurations);
 
     page.client().page_did_receive_reference_test_metadata(metadata);
-    return {};
+    return { };
 }
 
 // https://web-platform-tests.org/writing-tests/testharness.html#variants
@@ -143,7 +146,7 @@ WebIDL::ExceptionOr<void> Internals::load_test_variants()
 
     // Always fire callback so test runner knows variant check is complete.
     page.client().page_did_receive_test_variant_metadata(variants);
-    return {};
+    return { };
 }
 
 void Internals::gc()
@@ -223,7 +226,7 @@ static constexpr Optional<WebDriverKeyData> webdriver_key_to_key_code(u32 code_p
     case 0xE03D: // Meta
         return WebDriverKeyData { UIEvents::Key_LeftSuper, UIEvents::Mod_Super, 0 };
     }
-    return {};
+    return { };
 }
 
 void Internals::send_text(HTML::HTMLElement& target, String const& text, WebIDL::UnsignedShort modifiers)
@@ -389,7 +392,7 @@ void Internals::simulate_drag_move(double x, double y)
     auto& page = this->page();
 
     auto position = page.css_to_device_point({ x, y });
-    page.handle_drag_and_drop_event(DragEvent::Type::DragMove, position, position, UIEvents::MouseButton::Primary, 0, 0, {});
+    page.handle_drag_and_drop_event(DragEvent::Type::DragMove, position, position, UIEvents::MouseButton::Primary, 0, 0, { });
 }
 
 void Internals::simulate_drop(double x, double y)
@@ -397,7 +400,7 @@ void Internals::simulate_drop(double x, double y)
     auto& page = this->page();
 
     auto position = page.css_to_device_point({ x, y });
-    page.handle_drag_and_drop_event(DragEvent::Type::Drop, position, position, UIEvents::MouseButton::Primary, 0, 0, {});
+    page.handle_drag_and_drop_event(DragEvent::Type::Drop, position, position, UIEvents::MouseButton::Primary, 0, 0, { });
 }
 
 void Internals::expire_cookies_with_time_offset(WebIDL::LongLong seconds)
@@ -417,7 +420,7 @@ String Internals::get_computed_role(DOM::Element& element)
 {
     if (auto role = element.role_or_default(); role.has_value())
         return MUST(String::from_utf8(ARIA::role_name(role.value())));
-    return String {};
+    return String { };
 }
 
 String Internals::get_computed_label(DOM::Element& element)
@@ -532,7 +535,7 @@ void Internals::perform_per_test_cleanup()
 
 void Internals::set_highlighted_node(GC::Ptr<DOM::Node> node)
 {
-    window().associated_document().set_highlighted_node(node, {});
+    window().associated_document().set_highlighted_node(node, { });
 }
 
 void Internals::clear_element(HTML::HTMLElement& element)
@@ -545,6 +548,27 @@ void Internals::set_environments_top_level_url(StringView url)
 {
     auto& realm = *vm().current_realm();
     HTML::principal_realm_settings_object(realm).top_level_creation_url = URL::Parser::basic_parse(url);
+}
+
+GC::Ref<WebIDL::Promise> Internals::add_virtual_authenticator(CredentialManagement::AuthenticatorConfiguration const& config)
+{
+    auto maybe_authenticator = CredentialManagement::VirtualAuthenticator::create(config);
+    if (maybe_authenticator.is_error())
+        return WebIDL::create_rejected_promise(realm(), JS::TypeError::create(realm(), MUST(String::formatted("Failed to create virtual authenticator: {}", maybe_authenticator.error()))));
+
+    auto& authenticator = maybe_authenticator.value();
+
+    CredentialManagement::add_virtual_authenticator(authenticator);
+
+    return WebIDL::create_resolved_promise(realm(), JS::PrimitiveString::create(vm(), authenticator->authenticator_id()));
+}
+
+GC::Ref<WebIDL::Promise> Internals::remove_virtual_authenticator(String const& authenticator_id)
+{
+    if (CredentialManagement::remove_virtual_authenticator(authenticator_id))
+        return WebIDL::create_resolved_promise(realm(), JS::js_undefined());
+
+    return WebIDL::create_rejected_promise(realm(), JS::TypeError::create(realm(), "No such authenticator"_string));
 }
 
 }

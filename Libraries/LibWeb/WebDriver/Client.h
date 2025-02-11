@@ -117,6 +117,10 @@ public:
     // 18. Print, https://w3c.github.io/webdriver/#print
     virtual Response print_page(Parameters parameters, JsonValue payload) = 0;
 
+    // Web Authentication, https://www.w3.org/TR/webauthn-3/#sctn-automation
+    virtual Response add_virtual_authenticator(Parameters parameters, JsonValue payload) = 0;
+    virtual Response remove_virtual_authenticator(Parameters parameters, JsonValue payload) = 0;
+
     Function<void()> on_death;
 
 protected:

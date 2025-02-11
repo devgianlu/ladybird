@@ -109,6 +109,8 @@ static constexpr auto s_webdriver_endpoints = Array {
     ROUTE(GET, "/session/:session_id/screenshot"sv, take_screenshot),
     ROUTE(GET, "/session/:session_id/element/:element_id/screenshot"sv, take_element_screenshot),
     ROUTE(POST, "/session/:session_id/print"sv, print_page),
+    ROUTE(POST, "/session/:session_id/webauthn/authenticator"sv, add_virtual_authenticator),
+    ROUTE(DELETE, "/session/:session_id/webauthn/authenticator/:authenticator_id"sv, remove_virtual_authenticator),
 };
 
 // https://w3c.github.io/webdriver/#dfn-match-a-request

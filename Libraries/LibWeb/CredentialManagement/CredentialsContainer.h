@@ -13,6 +13,7 @@
 #include <LibWeb/CredentialManagement/Credential.h>
 #include <LibWeb/CredentialManagement/FederatedCredential.h>
 #include <LibWeb/CredentialManagement/PasswordCredential.h>
+#include <LibWeb/CredentialManagement/PublicKeyCredential.h>
 #include <LibWeb/DOM/AbortSignal.h>
 
 namespace Web::CredentialManagement {
@@ -42,6 +43,7 @@ struct CredentialRequestOptions {
 
     Optional<bool> password;
     Optional<FederatedCredentialRequestOptions> federated;
+    Optional<PublicKeyCredentialRequestOptions> public_key;
 };
 
 struct CredentialCreationOptions {
@@ -50,6 +52,7 @@ struct CredentialCreationOptions {
 
     Optional<PasswordCredentialInit> password;
     Optional<FederatedCredentialInit> federated;
+    Optional<PublicKeyCredentialCreationOptions> public_key;
 };
 
 }

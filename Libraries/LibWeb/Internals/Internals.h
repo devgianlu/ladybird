@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <LibWeb/CredentialManagement/PublicKeyCredential.h>
 #include <LibWeb/Export.h>
 #include <LibWeb/Internals/InternalAnimationTimeline.h>
 #include <LibWeb/Internals/InternalsBase.h>
@@ -106,6 +107,12 @@ public:
 
     void clear_element(HTML::HTMLElement&);
     void set_environments_top_level_url(StringView url);
+
+    // https://w3c.github.io/webauthn/#sctn-automation-add-virtual-authenticator
+    GC::Ref<WebIDL::Promise> add_virtual_authenticator(CredentialManagement::AuthenticatorConfiguration const& config);
+
+    // https://w3c.github.io/webauthn/#sctn-automation-remove-virtual-authenticator
+    GC::Ref<WebIDL::Promise> remove_virtual_authenticator(String const& authenticator_id);
 
 private:
     explicit Internals(JS::Realm&);

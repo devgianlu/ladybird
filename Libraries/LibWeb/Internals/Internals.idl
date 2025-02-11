@@ -2,6 +2,7 @@
 #import <HTML/HTMLElement.idl>
 #import <Internals/InternalAnimationTimeline.idl>
 #import <Internals/InternalGamepad.idl>
+#import <CredentialManagement/PublicKeyCredential.idl>
 
 [Exposed=Nobody]
 interface Internals {
@@ -87,4 +88,9 @@ interface Internals {
 
     undefined clearElement(HTMLElement element);
 
+    // https://w3c.github.io/webauthn/#sctn-automation-add-virtual-authenticator
+    Promise<DOMString> addVirtualAuthenticator(AuthenticatorConfiguration config);
+
+    // https://w3c.github.io/webauthn/#sctn-automation-remove-virtual-authenticator
+    Promise<undefined> removeVirtualAuthenticator(DOMString authenticatorId);
 };

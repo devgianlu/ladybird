@@ -109,6 +109,8 @@ private:
     virtual Messages::WebDriverClient::TakeElementScreenshotResponse take_element_screenshot(String element_id) override;
     virtual Messages::WebDriverClient::PrintPageResponse print_page(JsonValue payload) override;
     virtual Messages::WebDriverClient::EnsureTopLevelBrowsingContextIsOpenResponse ensure_top_level_browsing_context_is_open() override;
+    virtual Messages::WebDriverClient::AddVirtualAuthenticatorResponse add_virtual_authenticator(JsonValue payload) override;
+    virtual Messages::WebDriverClient::RemoveVirtualAuthenticatorResponse remove_virtual_authenticator(String authenticator_id) override;
 
     void set_current_browsing_context(Web::HTML::BrowsingContext&);
     Web::HTML::BrowsingContext& current_browsing_context() { return *m_current_browsing_context; }

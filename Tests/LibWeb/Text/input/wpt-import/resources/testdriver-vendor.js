@@ -75,3 +75,13 @@ window.test_driver_internal.action_sequence = function(actions, context) {
 
     return Promise.resolve();
 };
+
+// https://w3c.github.io/webauthn/#sctn-automation-add-virtual-authenticator
+window.test_driver_internal.add_virtual_authenticator = async function(config, context=null)  {
+    return window.internals.addVirtualAuthenticator(config, context);
+}
+
+// https://w3c.github.io/webauthn/#sctn-automation-remove-virtual-authenticator
+window.test_driver_internal.remove_virtual_authenticator = async function(authenticator_id, context=null)  {
+    return window.internals.removeVirtualAuthenticator(authenticator_id, context);
+}

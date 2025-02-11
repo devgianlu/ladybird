@@ -103,7 +103,7 @@ Web::WebDriver::Response Client::delete_session(Web::WebDriver::Parameters param
         session.value()->close();
 
     // 2. Return success with data null.
-    return JsonValue {};
+    return JsonValue { };
 }
 
 // https://w3c.github.io/webdriver/#dfn-readiness-state
@@ -843,6 +843,24 @@ Web::WebDriver::Response Client::print_page(Web::WebDriver::Parameters parameter
     dbgln_if(WEBDRIVER_DEBUG, "Handling POST /session/<session id>/print");
     auto session = TRY(Session::find_session(parameters[0]));
     return session->web_content_connection().print_page(move(payload));
+}
+
+// Web Authentication, https://w3c.github.io/webauthn/#sctn-automation-add-virtual-authenticator
+// POST /session/{session id}/webauthn/authenticator
+Web::WebDriver::Response Client::add_virtual_authenticator(Web::WebDriver::Parameters parameters, JsonValue payload)
+{
+    dbgln_if(WEBDRIVER_DEBUG, "Handling POST /session/<session id>/webauthn/authenticator");
+    auto session = TRY(Session::find_session(parameters[0]));
+    return session->web_content_connection().add_virtual_authenticator(move(payload));
+}
+
+// Web Authentication, https://w3c.github.io/webauthn/#sctn-automation-remove-virtual-authenticator
+// DELETE /session/{session id}/webauthn/authenticator/{authenticator id}
+Web::WebDriver::Response Client::remove_virtual_authenticator(Web::WebDriver::Parameters parameters, JsonValue)
+{
+    dbgln_if(WEBDRIVER_DEBUG, "Handling DELETE /session/<session id>/webauthn/authenticator/<authenticator id>");
+    auto session = TRY(Session::find_session(parameters[0]));
+    return session->web_content_connection().remove_virtual_authenticator(move(parameters[1]));
 }
 
 }

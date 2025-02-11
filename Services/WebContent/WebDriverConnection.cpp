@@ -22,6 +22,7 @@
 #include <LibWeb/CSS/CustomPropertyData.h>
 #include <LibWeb/CSS/PropertyNameAndID.h>
 #include <LibWeb/CSS/StyleValues/StyleValue.h>
+#include <LibWeb/CredentialManagement/VirtualAuthenticator.h>
 #include <LibWeb/Crypto/Crypto.h>
 #include <LibWeb/DOM/Document.h>
 #include <LibWeb/DOM/DocumentObserver.h>
@@ -2591,6 +2592,73 @@ Messages::WebDriverClient::PrintPageResponse WebDriverConnection::print_page(Jso
 {
     dbgln("FIXME: WebDriverConnection::print_page({})", payload);
     return Web::WebDriver::Error::from_code(Web::WebDriver::ErrorCode::UnsupportedOperation, "Print not implemented"sv);
+}
+
+// Web Authentication, https://w3c.github.io/webauthn/#sctn-automation-add-virtual-authenticator
+Messages::WebDriverClient::AddVirtualAuthenticatorResponse WebDriverConnection::add_virtual_authenticator(JsonValue parameters)
+{
+    // 1. If parameters is not a JSON Object, return a WebDriver error with WebDriver error code invalid argument.
+    if (!parameters.is_object())
+        return Web::WebDriver::Error::from_code(Web::WebDriver::ErrorCode::InvalidArgument, "Parameters must be a JSON object"sv);
+
+    // 2. Let authenticator be a new Virtual Authenticator.
+    // 3. For each enumerable own property in parameters:
+    //    1. Let key be the name of the property.
+    //    2. Let value be the result of getting a property named key from parameters.
+    //    3. If there is no matching key for key in Authenticator Configuration, return a WebDriver error with WebDriver error code invalid argument.
+    //    4. If value is not one of the valid values for that key, return a WebDriver error with WebDriver error code invalid argument.
+    //    5. Set a property key to value on authenticator.
+    // 4. For each property in Authenticator Configuration with a default defined:
+    //    1. If key is not a defined property of authenticator, set a property key to default on authenticator.
+    // 5. For each property in Authenticator Configuration:
+    //    1. If key is not a defined property of authenticator, return a WebDriver error with WebDriver error code invalid argument.
+    // 6. For each extension in authenticator.extensions:
+    //    1. If extension is not an extension identifier supported by the endpoint node WebAuthn WebDriver implementation,
+    //       return a WebDriver error with WebDriver error code unsupported operation.
+    // 7. Generate a valid unique authenticatorId.
+    // 8. Set a property authenticatorId to authenticatorId on authenticator.
+    auto config = Web::CredentialManagement::AuthenticatorConfiguration {};
+    config.protocol = TRY(Web::WebDriver::get_property<String>(parameters, "protocol"sv));
+    config.transport = TRY(Web::WebDriver::get_property<String>(parameters, "transport"sv));
+    config.has_resident_key = TRY(Web::WebDriver::get_property<bool>(parameters, "hasResidentKey"sv));
+    config.has_user_verification = TRY(Web::WebDriver::get_property<bool>(parameters, "hasUserVerification"sv));
+    config.is_user_consenting = TRY(Web::WebDriver::get_property<bool>(parameters, "isUserConsenting"sv));
+    config.is_user_verified = TRY(Web::WebDriver::get_property<bool>(parameters, "isUserVerified"sv));
+    config.default_backup_eligibility = TRY(Web::WebDriver::get_property<bool>(parameters, "defaultBackupEligibility"sv));
+    config.default_backup_state = TRY(Web::WebDriver::get_property<bool>(parameters, "defaultBackupState"sv));
+
+    auto extensions = TRY(Web::WebDriver::get_property<JsonArray const*>(parameters, "extensions"sv));
+    for (size_t i = 0; i < extensions->size(); ++i) {
+        auto& extension = extensions->at(i);
+        if (!extension.is_string())
+            return Web::WebDriver::Error::from_code(Web::WebDriver::ErrorCode::InvalidArgument, "Extensions must be an array of strings"sv);
+        config.extensions.append(extension.as_string());
+    }
+
+    auto maybe_authenticator = Web::CredentialManagement::VirtualAuthenticator::create(config);
+    if (maybe_authenticator.is_error())
+        return Web::WebDriver::Error::from_code(Web::WebDriver::ErrorCode::InvalidArgument, "Invalid authenticator configuration"sv);
+
+    auto authenticator = maybe_authenticator.release_value();
+
+    // 9. Store authenticator in the Virtual Authenticator Database.
+    Web::CredentialManagement::add_virtual_authenticator(authenticator);
+
+    // 10. Return success with data authenticatorId.
+    return authenticator->authenticator_id();
+}
+
+// Web Authentication, https://w3c.github.io/webauthn/#sctn-automation-remove-virtual-authenticator
+Messages::WebDriverClient::RemoveVirtualAuthenticatorResponse WebDriverConnection::remove_virtual_authenticator(String authenticator_id)
+{
+    // 1. If authenticatorId does not match any Virtual Authenticator stored in the Virtual Authenticator Database,
+    //    return a WebDriver error with WebDriver error code invalid argument.
+    // 2. Remove the Virtual Authenticator identified by authenticatorId from the Virtual Authenticator Database
+    if (!Web::CredentialManagement::remove_virtual_authenticator(authenticator_id))
+        return Web::WebDriver::Error::from_code(Web::WebDriver::ErrorCode::InvalidArgument, "No authenticator with the given ID found"sv);
+
+    // 3. Return success.
+    return JsonValue {};
 }
 
 // https://w3c.github.io/webdriver/#dfn-set-the-current-browsing-context

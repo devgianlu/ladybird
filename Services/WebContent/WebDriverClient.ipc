@@ -66,4 +66,6 @@ endpoint WebDriverClient {
     take_element_screenshot(String element_id) => (Web::WebDriver::Response response)
     print_page(JsonValue payload) => (Web::WebDriver::Response response)
     ensure_top_level_browsing_context_is_open() => (Web::WebDriver::Response response)
+    add_virtual_authenticator(JsonValue payload) => (Web::WebDriver::Response response)
+    remove_virtual_authenticator(String authenticator_id) => (Web::WebDriver::Response response)
 }

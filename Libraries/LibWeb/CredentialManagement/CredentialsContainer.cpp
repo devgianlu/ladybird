@@ -80,10 +80,10 @@ static Vector<CredentialInterface const&> relevant_credential_interface_objects(
     // https://w3c.github.io/webappsec-credential-management/#credential-type-registry-appropriate-interface-object
     APPEND_CREDENTIAL_INTERFACE_OBJECT(password, PasswordCredential);
     APPEND_CREDENTIAL_INTERFACE_OBJECT(federated, FederatedCredential);
+    APPEND_CREDENTIAL_INTERFACE_OBJECT(public_key, PublicKeyCredential);
     // TODO: digital
     // TODO: identity
     // TODO: otp
-    // TODO: publicKey
 
 #undef APPEND_CREDENTIAL_INTERFACE_OBJECT
 
@@ -435,6 +435,9 @@ GC::Ref<WebIDL::Promise> CredentialsContainer::create(CredentialCreationOptions 
 
     // 14. Let origin be settings’s origin.
     auto origin = settings.origin();
+
+    // FIXME: since the tests run on local file, we need to replace the origin
+    origin = URL::Origin("https"_string, "example.com"_string, 443);
 
     // 15. Let p be a new promise.
     auto promise = WebIDL::create_promise(realm());

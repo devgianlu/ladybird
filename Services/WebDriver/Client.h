@@ -93,6 +93,8 @@ private:
     virtual Web::WebDriver::Response take_screenshot(Web::WebDriver::Parameters parameters, JsonValue payload) override;
     virtual Web::WebDriver::Response take_element_screenshot(Web::WebDriver::Parameters parameters, JsonValue payload) override;
     virtual Web::WebDriver::Response print_page(Web::WebDriver::Parameters parameters, JsonValue payload) override;
+    virtual Web::WebDriver::Response add_virtual_authenticator(Web::WebDriver::Parameters parameters, JsonValue payload) override;
+    virtual Web::WebDriver::Response remove_virtual_authenticator(Web::WebDriver::Parameters parameters, JsonValue payload) override;
 
     LaunchBrowserCallback m_launch_browser_callback;
 };
