@@ -47,10 +47,12 @@ set(SOURCES
     ContentSecurityPolicy/SecurityPolicyViolationEvent.cpp
     ContentSecurityPolicy/SerializedPolicy.cpp
     ContentSecurityPolicy/Violation.cpp
+    CredentialManagement/AuthenticatorResponse.cpp
     CredentialManagement/Credential.cpp
     CredentialManagement/CredentialsContainer.cpp
     CredentialManagement/FederatedCredential.cpp
     CredentialManagement/PasswordCredential.cpp
+    CredentialManagement/PublicKeyCredential.cpp
     Crypto/Crypto.cpp
     Crypto/CryptoAlgorithms.cpp
     Crypto/CryptoBindings.cpp

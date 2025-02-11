@@ -29,6 +29,9 @@ public:
         //       therefore conditional mediation is not supported.
         return false;
     }
+
+    // https://w3c.github.io/webappsec-credential-management/#create-federatedcredential
+    virtual JS::ThrowCompletionOr<Variant<Empty, GC::Ref<Credential>, GC::Ref<CreateCredentialAlgorithm>>> create(JS::Realm&, URL::Origin const&, CredentialCreationOptions const&, bool) const override;
 };
 
 class FederatedCredential final : public Credential {
@@ -50,10 +53,14 @@ public:
         return FederatedCredentialInterface::the();
     }
 
+    // https://w3c.github.io/webappsec-credential-management/#abstract-opdef-create-a-federatedcredential-from-federatedcredentialinit
+    static WebIDL::ExceptionOr<GC::Ref<FederatedCredential>> create_from_federated_credential_init(JS::Realm&, FederatedCredentialInit const&);
+
 private:
     explicit FederatedCredential(JS::Realm&);
     virtual void initialize(JS::Realm&) override;
 
+    String m_origin;
     String m_provider;
     Optional<String> m_protocol;
 };
