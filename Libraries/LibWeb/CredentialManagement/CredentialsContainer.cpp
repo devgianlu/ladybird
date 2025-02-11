@@ -65,22 +65,22 @@ static Vector<CredentialInterface const*> relevant_credential_interface_objects(
     // NOTE: We cannot iterate like the spec says.
     //      1. Let credentialInterfaceObject be the Appropriate Interface Object (on settings’ global object) whose Options Member Identifier is optionKey.
     //      2. Assert: credentialInterfaceObject’s [[type]] slot equals the Credential Type whose Options Member Identifier is optionKey.
+    //         NOTE: This is not necessary in our implementation.
     //      3. Append credentialInterfaceObject to relevant interface objects.
 
 #define APPEND_CREDENTIAL_INTERFACE_OBJECT(key, type_)                            \
     if (options.key.has_value()) {                                                \
         auto credential_interface_object = type_##Interface::the();               \
-        VERIFY(credential_interface_object->options_member_identifier() == #key); \
         interfaces.append(credential_interface_object);                           \
     }
 
     // https://w3c.github.io/webappsec-credential-management/#credential-type-registry-appropriate-interface-object
     APPEND_CREDENTIAL_INTERFACE_OBJECT(password, PasswordCredential);
     APPEND_CREDENTIAL_INTERFACE_OBJECT(federated, FederatedCredential);
+    APPEND_CREDENTIAL_INTERFACE_OBJECT(public_key, PublicKeyCredential);
     // TODO: digital
     // TODO: identity
     // TODO: otp
-    // TODO: publicKey
 
 #undef APPEND_CREDENTIAL_INTERFACE_OBJECT
 
