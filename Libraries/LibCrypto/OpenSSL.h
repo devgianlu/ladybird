@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Altomani Gianluca <altomanigianluca@gmail.com>
+ * Copyright (c) 2024-2025, Altomani Gianluca <altomanigianluca@gmail.com>
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
@@ -104,6 +104,10 @@ class OpenSSL_MD_CTX {
 
 public:
     static ErrorOr<OpenSSL_MD_CTX> create();
+};
+
+class OpenSSL_KDF_CTX {
+    OPENSSL_WRAPPER_CLASS(OpenSSL_KDF_CTX, EVP_KDF_CTX, EVP_KDF_CTX);
 };
 
 #undef OPENSSL_WRAPPER_CLASS
