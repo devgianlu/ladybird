@@ -48,7 +48,7 @@ struct JsonWebKey {
     Optional<String> pub;
     Optional<String> priv;
 
-    JS::ThrowCompletionOr<GC::Ref<JS::Object>> to_object(JS::Realm&);
+    JS::ThrowCompletionOr<GC::Ref<JS::Object>> to_object(JS::Realm&) const;
 
     static JS::ThrowCompletionOr<JsonWebKey> parse(JS::Realm& realm, ReadonlyBytes data);
 };

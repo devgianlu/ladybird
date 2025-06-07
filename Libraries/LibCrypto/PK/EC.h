@@ -36,6 +36,8 @@ public:
     {
     }
 
+    UnsignedBigInteger const& x() const { return m_x; }
+    UnsignedBigInteger const& y() const { return m_y; }
     size_t scalar_size() const { return m_scalar_size; }
 
     ErrorOr<ByteBuffer> x_bytes() const

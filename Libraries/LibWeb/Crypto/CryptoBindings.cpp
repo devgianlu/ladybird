@@ -87,7 +87,7 @@ JS::ThrowCompletionOr<JsonWebKey> JsonWebKey::parse(JS::Realm& realm, ReadonlyBy
 
 #undef JWK_PARSE_STRING_PROPERTY
 
-JS::ThrowCompletionOr<GC::Ref<JS::Object>> JsonWebKey::to_object(JS::Realm& realm)
+JS::ThrowCompletionOr<GC::Ref<JS::Object>> JsonWebKey::to_object(JS::Realm& realm) const
 {
     auto& vm = realm.vm();
     auto object = JS::Object::create(realm, realm.intrinsics().object_prototype());
