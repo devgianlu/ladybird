@@ -1,0 +1,6 @@
+AES-GCM kty: true
+AES-GCM key_ops: false
+AES-GCM alg: false
+AES-GCM ext: true
+AES-GCM k: false
+Caught error while running async test: OperationError: unclear key size
