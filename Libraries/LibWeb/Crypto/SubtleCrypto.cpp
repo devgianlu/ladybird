@@ -448,6 +448,7 @@ GC::Ref<WebIDL::Promise> SubtleCrypto::export_key(Bindings::KeyFormat format, GC
         // 5. If the name member of the [[algorithm]] internal slot of key does not identify a registered algorithm that supports the export key operation,
         //    then throw a NotSupportedError.
         // Note: Handled by the base AlgorithmMethods implementation
+        dbgln("EXPORT: {}", key->algorithm()->class_name());
         auto& algorithm = as<KeyAlgorithm>(*key->algorithm());
         // FIXME: Stash the AlgorithmMethods on the KeyAlgorithm
         auto normalized_algorithm_or_error = normalize_an_algorithm(realm, algorithm.name(), "exportKey"_string);

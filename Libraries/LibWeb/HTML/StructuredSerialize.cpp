@@ -320,6 +320,7 @@ public:
 
         // 19. Otherwise, if value is a platform object that is a serializable object:
         else if (value.is_object() && is<Bindings::Serializable>(value.as_object())) {
+            dbgln("SERIALIZE {}", value.as_object().class_name());
             auto& serializable = dynamic_cast<Bindings::Serializable&>(value.as_object());
 
             // FIXME: 1. If value has a [[Detached]] internal slot whose value is true, then throw a "DataCloneError" DOMException.
@@ -349,6 +350,8 @@ public:
 
         // 24. Otherwise:
         else {
+dbgln("OTHERWISE {}",value.as_object().class_name() );
+
             // 1. Set serialized to { [[Type]]: "Object", [[Properties]]: a new empty List }.
             serialize_enum(m_serialized, ValueTag::Object);
 
@@ -528,6 +531,11 @@ WebIDL::ExceptionOr<void> serialize_reg_exp_object(JS::VM& vm, SerializationReco
     TRY(serialize_string(vm, serialized, regexp_object.pattern()));
     TRY(serialize_string(vm, serialized, regexp_object.flags()));
     return {};
+}
+
+WebIDL::ExceptionOr<void> serialize_unsigned_big_integer(JS::VM& vm, Vector<u32>& vector, ::Crypto::UnsignedBigInteger const& bigint)
+{
+    return serialize_string(vm, vector, TRY_OR_THROW_OOM(vm, bigint.to_base(10)));
 }
 
 WebIDL::ExceptionOr<void> serialize_bytes(JS::VM& vm, Vector<u32>& vector, ReadonlyBytes bytes)
@@ -716,6 +724,7 @@ public:
     WebIDL::ExceptionOr<JS::Value> deserialize()
     {
         auto tag = deserialize_primitive_type<ValueTag>(m_serialized, m_position);
+        dbgln("DESERIALIZE TAG: {}", static_cast<u32>(tag));
 
         // 2. If memory[serialized] exists, then return memory[serialized].
         if (tag == ValueTag::ObjectReference) {

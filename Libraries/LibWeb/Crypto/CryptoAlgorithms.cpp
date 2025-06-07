@@ -8141,6 +8141,7 @@ WebIDL::ExceptionOr<GC::Ref<JS::Object>> HMAC::export_key(Bindings::KeyFormat fo
     // 2. Let bits be the raw bits of the key represented by [[handle]] internal slot of key.
     // 3. Let data be an octet string containing bits.
     auto data = key->handle().get<ByteBuffer>();
+    dbgln("DATA {}", data.bytes());
 
     // 4. If format is "raw":
     GC::Ptr<JS::Object> result;

@@ -134,6 +134,7 @@ JS_DEFINE_NATIVE_FUNCTION(CryptoKeyPair::private_key_getter)
     return TRY(Bindings::throw_dom_exception_if_needed(vm, [&] { return impl->private_key(); }));
 }
 
+// https://w3c.github.io/webcrypto/#cryptokey-interface-serializable
 WebIDL::ExceptionOr<void> CryptoKey::serialization_steps(HTML::SerializationRecord& serialized, bool for_storage, HTML::SerializationMemory& memory)
 {
     auto& vm = this->vm();
@@ -144,19 +145,58 @@ WebIDL::ExceptionOr<void> CryptoKey::serialization_steps(HTML::SerializationReco
     // 2. Set serialized.[[Extractable]] to the [[extractable]] internal slot of value.
     HTML::serialize_primitive_type(serialized, m_extractable);
 
+    dbgln("PRE SERIALIZE ALGORITHM");
     // 3. Set serialized.[[Algorithm]] to the sub-serialization of the [[algorithm]] internal slot of value.
     auto serialized_algorithm = TRY(HTML::structured_serialize_internal(vm, m_algorithm, for_storage, memory));
     serialized.extend(move(serialized_algorithm));
+    dbgln("POST SERIALIZE ALGORITHM");
 
     // 4. Set serialized.[[Usages]] to the sub-serialization of the [[usages]] internal slot of value.
     auto serialized_usages = TRY(HTML::structured_serialize_internal(vm, m_usages, for_storage, memory));
     serialized.extend(move(serialized_usages));
 
-    // FIXME: 5. Set serialized.[[Handle]] to the [[handle]] internal slot of value.
+    // 5. Set serialized.[[Handle]] to the [[handle]] internal slot of value.
+    TRY(m_key_data.visit(
+        [&](ByteBuffer const& data) -> WebIDL::ExceptionOr<void> {
+            TRY(HTML::serialize_string(vm, serialized, "bytes"_string));
+            TRY(HTML::serialize_bytes(vm, serialized, data));
+            return {};
+        },
+        [&](Bindings::JsonWebKey const& jwk) -> WebIDL::ExceptionOr<void> {
+            TRY(HTML::serialize_string(vm, serialized, "jwk"_string));
+            auto serialized_jwk = TRY(HTML::structured_serialize_internal(vm, TRY(jwk.to_object(realm())), for_storage, memory));
+            serialized.extend(move(serialized_jwk));
+            return {};
+        },
+        [&](::Crypto::PK::RSAPublicKey const& public_key) -> WebIDL::ExceptionOr<void> {
+            TRY(HTML::serialize_string(vm, serialized, "rsa-pub"_string));
+            auto bytes = TRY_OR_THROW_OOM(vm, public_key.export_as_der());
+            TRY(HTML::serialize_bytes(vm, serialized, bytes));
+            return {};
+        },
+        [&](::Crypto::PK::RSAPrivateKey const& private_key) -> WebIDL::ExceptionOr<void> {
+            TRY(HTML::serialize_string(vm, serialized, "rsa-priv"_string));
+            auto bytes = TRY_OR_THROW_OOM(vm, private_key.export_as_der());
+            TRY(HTML::serialize_bytes(vm, serialized, bytes));
+            return {};
+        },
+        [&](::Crypto::PK::ECPublicKey const& public_key) -> WebIDL::ExceptionOr<void> {
+            TRY(HTML::serialize_string(vm, serialized, "ec-pub"_string));
+            auto bytes = TRY_OR_THROW_OOM(vm, public_key.to_uncompressed());
+            TRY(HTML::serialize_bytes(vm, serialized, bytes));
+            return {};
+        },
+        [&](::Crypto::PK::ECPrivateKey const& private_key) -> WebIDL::ExceptionOr<void> {
+            TRY(HTML::serialize_string(vm, serialized, "ec-priv"_string));
+            auto bytes = TRY_OR_THROW_OOM(vm, private_key.export_as_der());
+            TRY(HTML::serialize_bytes(vm, serialized, bytes));
+            return {};
+        }));
 
     return {};
 }
 
+// https://w3c.github.io/webcrypto/#cryptokey-interface-serializable
 WebIDL::ExceptionOr<void> CryptoKey::deserialization_steps(ReadonlySpan<u32> const& serialized, size_t& position, HTML::DeserializationMemory& memory)
 {
     auto& vm = this->vm();
@@ -169,10 +209,12 @@ WebIDL::ExceptionOr<void> CryptoKey::deserialization_steps(ReadonlySpan<u32> con
     m_extractable = HTML::deserialize_primitive_type<bool>(serialized, position);
 
     // 3. Initialize the [[algorithm]] internal slot of value to the sub-deserialization of serialized.[[Algorithm]].
+    dbgln("PRE DESERIALIZE ALGORITHM");
     auto deserialized_record = TRY(HTML::structured_deserialize_internal(vm, serialized, realm, memory, position));
     if (deserialized_record.value.has_value())
         m_algorithm = deserialized_record.value.release_value().as_object();
     position = deserialized_record.position;
+    dbgln("POST DESERIALIZE ALGORITHM: {}", m_algorithm);
 
     // 4. Initialize the [[usages]] internal slot of value to the sub-deserialization of serialized.[[Usages]].
     deserialized_record = TRY(HTML::structured_deserialize_internal(vm, serialized, realm, memory, position));
@@ -180,7 +222,31 @@ WebIDL::ExceptionOr<void> CryptoKey::deserialization_steps(ReadonlySpan<u32> con
         m_usages = deserialized_record.value.release_value().as_object();
     position = deserialized_record.position;
 
-    // FIXME: 5. Initialize the [[handle]] internal slot of value to serialized.[[Handle]].
+    // 5. Initialize the [[handle]] internal slot of value to serialized.[[Handle]].
+    auto deserialized_key_data_type = TRY(HTML::deserialize_string(vm, serialized, position));
+    if (deserialized_key_data_type == "bytes") {
+        m_key_data = TRY(HTML::deserialize_bytes(vm, serialized, position));
+    } else if (deserialized_key_data_type == "jwk") {
+        VERIFY_NOT_REACHED();
+    } else if (deserialized_key_data_type == "rsa-pub") {
+        auto bytes = TRY(HTML::deserialize_bytes(vm, serialized, position));
+        auto key_pair = MUST(::Crypto::PK::RSA::parse_rsa_key(bytes, false, {}));
+        m_key_data = key_pair.public_key;
+    } else if (deserialized_key_data_type == "rsa-priv") {
+        auto bytes = TRY(HTML::deserialize_bytes(vm, serialized, position));
+        auto key_pair = MUST(::Crypto::PK::RSA::parse_rsa_key(bytes, true, {}));
+        m_key_data = key_pair.private_key;
+    } else if (deserialized_key_data_type == "ec-pub") {
+        auto bytes = TRY(HTML::deserialize_bytes(vm, serialized, position));
+        auto key_pair = MUST(::Crypto::PK::EC::parse_ec_key(bytes, false, {}));
+        m_key_data = key_pair.public_key;
+    } else if (deserialized_key_data_type == "ec-priv") {
+        auto bytes = TRY(HTML::deserialize_bytes(vm, serialized, position));
+        auto key_pair = MUST(::Crypto::PK::EC::parse_ec_key(bytes, true, {}));
+        m_key_data = key_pair.private_key;
+    } else {
+        VERIFY_NOT_REACHED();
+    }
 
     return {};
 }

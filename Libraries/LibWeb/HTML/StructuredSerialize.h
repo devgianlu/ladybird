@@ -16,6 +16,7 @@
 #include <LibWeb/Forward.h>
 #include <LibWeb/HTML/StructuredSerializeTypes.h>
 #include <LibWeb/WebIDL/ExceptionOr.h>
+#include <LibCrypto/BigInt/UnsignedBigInteger.h>
 
 // Structured serialize is an entirely different format from IPC because:
 // - It contains representation of type information
@@ -91,6 +92,7 @@ void serialize_enum(SerializationRecord& serialized, T value)
     serialize_primitive_type<UnderlyingType<T>>(serialized, to_underlying(value));
 }
 
+WebIDL::ExceptionOr<void> serialize_unsigned_big_integer(JS::VM& vm, Vector<u32>& vector, ::Crypto::UnsignedBigInteger const& bigint);
 WebIDL::ExceptionOr<void> serialize_bytes(JS::VM& vm, Vector<u32>& vector, ReadonlyBytes bytes);
 WebIDL::ExceptionOr<void> serialize_string(JS::VM& vm, Vector<u32>& vector, StringView);
 WebIDL::ExceptionOr<void> serialize_string(JS::VM& vm, Vector<u32>& vector, String const& string);
