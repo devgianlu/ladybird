@@ -11,6 +11,6 @@
 namespace Web::CredentialManagement {
 
 // https://www.w3.org/TR/credential-management-1/#abstract-opdef-create-a-federatedcredential-from-federatedcredentialinit
-WebIDL::ExceptionOr<GC::Ref<FederatedCredential>> create_federated_credential(JS::Realm& realm, FederatedCredentialInit const&);
+WebIDL::ExceptionOr<GC::Ref<FederatedCredential>> create_federated_credential(JS::Realm& realm, FederatedCredentialInit const&, URL::Origin const&);
 
 }
